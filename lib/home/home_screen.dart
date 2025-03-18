@@ -20,13 +20,13 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  Future<List<Todo>> getTodosForUser(String userId) async {
-    final querySnapshot = await FirebaseFirestore.instance
+  Stream<List<Todo>> getTodosForUser(String userId) {
+    return FirebaseFirestore.instance
         .collection('todos')
         .where('uid', isEqualTo: userId)
-        .get();
-
-    return querySnapshot.docs.map((doc) => Todo.fromSnapshot(doc)).toList();
+        .snapshots()
+        .map((querySnapshot) =>
+            querySnapshot.docs.map((doc) => Todo.fromSnapshot(doc)).toList());
   }
 
   @override
@@ -70,7 +70,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         'uid': user.uid,
                       });
                       _controller.clear();
-                      setState(() {}); // Refresh the list
                     }
                   },
                   child: const Text('Add'),
@@ -79,8 +78,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 16),
             Expanded(
-                child: FutureBuilder<List<Todo>>(
-              future: getTodosForUser(user?.uid ?? ''),
+                child: StreamBuilder<List<Todo>>(
+              stream: getTodosForUser(user?.uid ?? ''),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
