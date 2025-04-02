@@ -33,7 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _todoSubscription = getTodosForUser(user.uid).listen((todos) {
         setState(() {
           _todos = todos;
-          _filteredTodos ??= todos;
+          _filteredTodos = filterTodos();
         });
       });
     }
