@@ -89,97 +89,115 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                prefixIcon: const Icon(Icons.search),
-                labelText: 'Search TODOs',
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.filter_list),
-                  onPressed: () async {
-                    final result = await showModalBottomSheet<FilterSheetResult>(
-                      context: context,
-                      builder: (context) {
-                        return FilterSheet(initialFilters: _filters);
-                      },
-                    );
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          bool isDesktop = constraints.maxWidth > 600;
+          return Center(
+            child: SizedBox(
+              width: isDesktop ? 600 : double.infinity,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        prefixIcon: const Icon(Icons.search),
+                        labelText: 'Search TODOs',
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.filter_list),
+                          onPressed: () async {
+                            final result = await showModalBottomSheet<FilterSheetResult>(
+                              context: context,
+                              builder: (context) {
+                                return FilterSheet(initialFilters: _filters);
+                              },
+                            );
 
-                    if (result != null) {
-                      setState(() {
-                        _filters = result;
-                        _filteredTodos = filterTodos();
-                      });
-                    }
-                  },
-                ),
-              ),
-              onChanged: (value) {
-                setState(() {
-                  _filteredTodos = filterTodos();
-                });
-              },
-            ),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    keyboardType: TextInputType.text,
-                    controller: _controller,
-                    decoration: const InputDecoration(
-                      labelText: 'Enter Task:',
+                            if (result != null) {
+                              setState(() {
+                                _filters = result;
+                                _filteredTodos = filterTodos();
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          _filteredTodos = filterTodos();
+                        });
+                      },
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (user != null && _controller.text.isNotEmpty) {
-                      await FirebaseFirestore.instance.collection('todos').add({
-                        'text': _controller.text,
-                        'createdAt': FieldValue.serverTimestamp(),
-                        'uid': user.uid,
-                      });
-                      _controller.clear();
-                    }
-                  },
-                  child: const Text('Add'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: _filteredTodos?.isEmpty ?? true
-                  ? const Center(child: Text('No TODOs found'))
-                  : ListView.builder(
-                      itemCount: _filteredTodos?.length ?? 0,
-                      itemBuilder: (context, index) {
-                        final todo = _filteredTodos?[index];
-                        if (todo == null) return const SizedBox.shrink();
-                        return ListTile(
-                          leading: Checkbox(
-                            value: todo.completedAt != null,
-                            onChanged: (bool? value) {
-                              final updateData = {'completedAt': value == true ? FieldValue.serverTimestamp() : null};
-                              FirebaseFirestore.instance.collection('todos').doc(todo.id).update(updateData);
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: _filteredTodos?.isEmpty ?? true
+                        ? const Center(child: Text('No TODOs found'))
+                        : ListView.builder(
+                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                            itemCount: _filteredTodos?.length ?? 0,
+                            itemBuilder: (context, index) {
+                              final todo = _filteredTodos?[index];
+                              if (todo == null) return const SizedBox.shrink();
+                              return ListTile(
+                                leading: Checkbox(
+                                  value: todo.completedAt != null,
+                                  onChanged: (bool? value) {
+                                    final updateData = {
+                                      'completedAt': value == true ? FieldValue.serverTimestamp() : null
+                                    };
+                                    FirebaseFirestore.instance.collection('todos').doc(todo.id).update(updateData);
+                                  },
+                                ),
+                                title: Text(
+                                  todo.text,
+                                  style: todo.completedAt != null
+                                      ? const TextStyle(decoration: TextDecoration.lineThrough)
+                                      : null,
+                                ),
+                                subtitle: Text(todo.createdAt.toString()),
+                              );
                             },
                           ),
-                          title: Text(
-                            todo.text,
-                            style: todo.completedAt != null
-                                ? const TextStyle(decoration: TextDecoration.lineThrough)
-                                : null,
+                  ),
+                  Container(
+                    color: Colors.green[100],
+                    padding: const EdgeInsets.all(32.0),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            keyboardType: TextInputType.text,
+                            controller: _controller,
+                            decoration: const InputDecoration(
+                              labelText: 'Enter Task:',
+                            ),
                           ),
-                          subtitle: Text(todo.createdAt.toString()),
-                        );
-                      },
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          onPressed: () async {
+                            if (user != null && _controller.text.isNotEmpty) {
+                              await FirebaseFirestore.instance.collection('todos').add({
+                                'text': _controller.text,
+                                'createdAt': FieldValue.serverTimestamp(),
+                                'uid': user.uid,
+                              });
+                              _controller.clear();
+                            }
+                          },
+                          child: const Text('Add'),
+                        ),
+                      ],
                     ),
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

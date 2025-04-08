@@ -33,10 +33,15 @@ class _FilterSheetState extends State<FilterSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.only(top: 16, left: 32, right: 32, bottom: 32),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          Text(
+            'Filters',
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
