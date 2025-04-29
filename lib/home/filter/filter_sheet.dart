@@ -45,6 +45,16 @@ class _FilterSheetState extends State<FilterSheet> {
     _endDate = widget.initialFilters.endDate;
   }
 
+  void _resetFilters() {
+    setState(() {
+      _sortBy = 'date';
+      _order = 'descending';
+      _priority = 'all';
+      _startDate = null;
+      _endDate = null;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -91,7 +101,6 @@ class _FilterSheetState extends State<FilterSheet> {
             ],
           ),
           const SizedBox(height: 16),
-          // Priority dropdown
           Row(
             children: [
               const Text('Priority:'),
@@ -115,7 +124,6 @@ class _FilterSheetState extends State<FilterSheet> {
             ],
           ),
           const SizedBox(height: 16),
-          // Date range pickers
           ListTile(
             title: Text(
               'From: ${_startDate != null ? _startDate!.toLocal().toString().split(' ')[0] : 'Any'}',
@@ -147,20 +155,29 @@ class _FilterSheetState extends State<FilterSheet> {
             },
           ),
           const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(
-                context,
-                FilterSheetResult(
-                  sortBy: _sortBy,
-                  order: _order,
-                  priority: _priority,
-                  startDate: _startDate,
-                  endDate: _endDate,
-                ),
-              );
-            },
-            child: const Text('Apply'),
+          Row(
+            children: [
+              TextButton(
+                onPressed: _resetFilters,
+                child: const Text('Reset'),
+              ),
+              const Spacer(),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(
+                    context,
+                    FilterSheetResult(
+                      sortBy: _sortBy,
+                      order: _order,
+                      priority: _priority,
+                      startDate: _startDate,
+                      endDate: _endDate,
+                    ),
+                  );
+                },
+                child: const Text('Apply'),
+              ),
+            ],
           ),
         ],
       ),
