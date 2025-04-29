@@ -6,6 +6,7 @@ class Todo {
   final String uid;
   final DateTime createdAt;
   final DateTime? completedAt;
+  final DateTime? dueAt;
 
   Todo({
     required this.id,
@@ -13,6 +14,7 @@ class Todo {
     required this.uid,
     required this.createdAt,
     required this.completedAt,
+    required this.dueAt,
   });
 
   Map<String, dynamic> toSnapshot() {
@@ -21,6 +23,7 @@ class Todo {
       'uid': uid,
       'createdAt': Timestamp.fromDate(createdAt),
       'completedAt': completedAt != null ? Timestamp.fromDate(completedAt!) : null,
+      'dueAt': dueAt != null ? Timestamp.fromDate(dueAt!) : null,
     };
   }
 
@@ -32,6 +35,7 @@ class Todo {
       uid: data['uid'],
       createdAt: data['createdAt'] != null ? (data['createdAt'] as Timestamp).toDate() : DateTime.now(),
       completedAt: data['completedAt'] != null ? (data['completedAt'] as Timestamp).toDate() : null,
+      dueAt: data['dueAt'] != null ? (data['dueAt'] as Timestamp).toDate() : null,
     );
   }
 }

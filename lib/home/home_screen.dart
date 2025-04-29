@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../data/todo.dart';
+import 'details/detail_screen.dart';
 import 'filter/filter_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -150,13 +151,21 @@ class _HomeScreenState extends State<HomeScreen> {
                                     FirebaseFirestore.instance.collection('todos').doc(todo.id).update(updateData);
                                   },
                                 ),
+                                trailing: Icon(Icons.arrow_forward_ios),
                                 title: Text(
                                   todo.text,
                                   style: todo.completedAt != null
                                       ? const TextStyle(decoration: TextDecoration.lineThrough)
                                       : null,
                                 ),
-                                subtitle: Text(todo.createdAt.toString()),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => DetailScreen(todo: todo),
+                                    ),
+                                  );
+                                },
                               );
                             },
                           ),
