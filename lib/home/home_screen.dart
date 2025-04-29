@@ -29,13 +29,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   List<Todo>? _filteredTodos;
 
   // List-mode state
-  String _newTodoPriority = 'low';
   FilterSheetResult _filters = FilterSheetResult(
     sortBy: 'date',
     order: 'descending',
     priority: 'all',
     startDate: null,
     endDate: null,
+    labels: const [],
   );
 
   // Calendar-mode state
@@ -83,15 +83,22 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     var list = _todos
         .where((t) => t.text.toLowerCase().contains(_searchController.text.toLowerCase()))
         .toList();
+    // Priority filter
     if (_filters.priority != 'all') {
       list = list.where((t) => t.priority == _filters.priority).toList();
     }
+    // Label filter
+    if (_filters.labels.isNotEmpty) {
+      list = list.where((t) => t.labels.any((lbl) => _filters.labels.contains(lbl))).toList();
+    }
+    // Date range filter
     if (_filters.startDate != null) {
       list = list.where((t) => t.dueAt != null && !t.dueAt!.isBefore(_filters.startDate!)).toList();
     }
     if (_filters.endDate != null) {
       list = list.where((t) => t.dueAt != null && !t.dueAt!.isAfter(_filters.endDate!)).toList();
     }
+    // Sorting
     if (_filters.sortBy == 'date') {
       list.sort((a, b) => _filters.order == 'ascending'
           ? a.createdAt.compareTo(b.createdAt)
@@ -131,6 +138,22 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         return Colors.orange;
       default:
         return Colors.green;
+    }
+  }
+
+  /// Maps a label to a color
+  Color _labelColor(String lbl) {
+    switch (lbl) {
+      case 'Work':
+        return Colors.blue;
+      case 'Personal':
+        return Colors.green;
+      case 'Urgent':
+        return Colors.red;
+      case 'Shopping':
+        return Colors.purple;
+      default:
+        return Colors.grey;
     }
   }
 
@@ -215,21 +238,38 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           ),
                         ],
                       ),
-                      trailing: const Icon(Icons.arrow_forward_ios),
-                      title: Text(
-                        todo.text,
-                        style: todo.completedAt != null
-                            ? TextStyle(
-                          color: _priorityColor(todo.priority),
-                          decoration: TextDecoration.lineThrough,
-                        )
-                            : TextStyle(
-                          color: _priorityColor(todo.priority),
-                        ),
+                      title: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            todo.text,
+                            style: todo.completedAt != null
+                                ? TextStyle(
+                              color: _priorityColor(todo.priority),
+                              decoration: TextDecoration.lineThrough,
+                            )
+                                : TextStyle(color: _priorityColor(todo.priority)),
+                          ),
+                          const SizedBox(height: 4),
+                          Wrap(
+                            spacing: 4,
+                            children: todo.labels
+                                .map(
+                                  (lbl) => Chip(
+                                label: Text(lbl),
+                                backgroundColor: _labelColor(lbl),
+                              ),
+                            )
+                                .toList(),
+                          ),
+                        ],
                       ),
+                      trailing: const Icon(Icons.arrow_forward_ios),
                       onTap: () => Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => DetailScreen(todo: todo)),
+                        MaterialPageRoute(
+                          builder: (_) => DetailScreen(todo: todo),
+                        ),
                       ),
                     );
                   },
@@ -286,12 +326,26 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     leading: Container(
                       width: 12,
                       height: 12,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: _priorityColor(todo.priority),
-                      ),
+                      decoration: BoxDecoration(shape: BoxShape.circle, color: _priorityColor(todo.priority)),
                     ),
-                    title: Text(todo.text),
+                    title: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(todo.text),
+                        const SizedBox(height: 4),
+                        Wrap(
+                          spacing: 4,
+                          children: todo.labels
+                              .map(
+                                (lbl) => Chip(
+                              label: Text(lbl),
+                              backgroundColor: _labelColor(lbl),
+                            ),
+                          )
+                              .toList(),
+                        ),
+                      ],
+                    ),
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => DetailScreen(todo: todo)),

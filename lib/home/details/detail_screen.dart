@@ -19,12 +19,15 @@ class DetailScreen extends StatefulWidget {
 class _DetailScreenState extends State<DetailScreen> {
   late TextEditingController _textController;
   DateTime? _selectedDueDate;
+  late Set<String> _selectedLabels;
+  final List<String> _allLabels = ['Work', 'Personal', 'Urgent', 'Shopping'];
 
   @override
   void initState() {
     super.initState();
     _textController = TextEditingController(text: widget.todo.text);
     _selectedDueDate = widget.todo.dueAt;
+    _selectedLabels = widget.todo.labels.toSet();
   }
 
   Future<void> _delete() async {
@@ -33,7 +36,7 @@ class _DetailScreenState extends State<DetailScreen> {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Todo deleted!')),
+          const SnackBar(content: Text('Todo deleted!')),
         );
       }
     } catch (e) {
@@ -77,10 +80,22 @@ class _DetailScreenState extends State<DetailScreen> {
     }
   }
 
+  Future<void> _updateLabels() async {
+    try {
+      await FirebaseFirestore.instance.collection('todos').doc(widget.todo.id).update({'labels': _selectedLabels.toList()});
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update labels: $e')),
+        );
+      }
+    }
+  }
+
   Future<bool> _requestNotificationPermission() async {
     final isGranted = await flutterLocalNotificationsPlugin
-            .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-            ?.requestNotificationsPermission() ??
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.requestNotificationsPermission() ??
         false;
     return isGranted;
   }
@@ -93,7 +108,7 @@ class _DetailScreenState extends State<DetailScreen> {
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white),
         ),
         backgroundColor: Colors.redAccent,
-        duration: Duration(seconds: 10),
+        duration: const Duration(seconds: 10),
         action: SnackBarAction(
           label: 'Open Settings',
           textColor: Colors.white,
@@ -118,10 +133,10 @@ class _DetailScreenState extends State<DetailScreen> {
   }
 
   Future<void> _scheduleNotification(
-    String todoId,
-    DateTime dueDate,
-    String text,
-  ) async {
+      String todoId,
+      DateTime dueDate,
+      String text,
+      ) async {
     final tzDateTime = tz.TZDateTime.from(dueDate, tz.local);
     await flutterLocalNotificationsPlugin.zonedSchedule(
       todoId.hashCode,
@@ -205,7 +220,7 @@ class _DetailScreenState extends State<DetailScreen> {
                     IconButton(
                       icon: const Icon(Icons.close),
                       onPressed: () async {
-                        _updateDueDate(null);
+                        await _updateDueDate(null);
                         setState(() {
                           _selectedDueDate = null;
                         });
@@ -236,8 +251,7 @@ class _DetailScreenState extends State<DetailScreen> {
 
                       final selectedTime = await showTimePicker(
                         context: context,
-                        initialTime:
-                            _selectedDueDate != null ? TimeOfDay.fromDateTime(_selectedDueDate!) : TimeOfDay.now(),
+                        initialTime: _selectedDueDate != null ? TimeOfDay.fromDateTime(_selectedDueDate!) : TimeOfDay.now(),
                       );
                       if (selectedTime == null) return;
 
@@ -263,6 +277,24 @@ class _DetailScreenState extends State<DetailScreen> {
                   ),
                 ],
               ),
+            ),
+            const SizedBox(height: 16),
+            // Label editing section
+            Text('Labels:', style: Theme.of(context).textTheme.bodyMedium),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: _allLabels.map((lbl) => FilterChip(
+                label: Text(lbl),
+                selected: _selectedLabels.contains(lbl),
+                onSelected: (sel) async {
+                  setState(() {
+                    if (sel) _selectedLabels.add(lbl);
+                    else _selectedLabels.remove(lbl);
+                  });
+                  await _updateLabels();
+                },
+              )).toList(),
             ),
           ],
         ),
