@@ -3,8 +3,17 @@ import 'package:flutter/material.dart';
 class FilterSheetResult {
   final String sortBy;
   final String order;
+  final String priority;
+  final DateTime? startDate;
+  final DateTime? endDate;
 
-  FilterSheetResult({required this.sortBy, required this.order});
+  FilterSheetResult({
+    required this.sortBy,
+    required this.order,
+    required this.priority,
+    this.startDate,
+    this.endDate,
+  });
 }
 
 class FilterSheet extends StatefulWidget {
@@ -22,12 +31,18 @@ class FilterSheet extends StatefulWidget {
 class _FilterSheetState extends State<FilterSheet> {
   String _sortBy = 'date';
   String _order = 'ascending';
+  String _priority = 'all';
+  DateTime? _startDate;
+  DateTime? _endDate;
 
   @override
   void initState() {
+    super.initState();
     _sortBy = widget.initialFilters.sortBy;
     _order = widget.initialFilters.order;
-    super.initState();
+    _priority = widget.initialFilters.priority;
+    _startDate = widget.initialFilters.startDate;
+    _endDate = widget.initialFilters.endDate;
   }
 
   @override
@@ -75,12 +90,74 @@ class _FilterSheetState extends State<FilterSheet> {
               ),
             ],
           ),
-          const SizedBox(height: 200),
+          const SizedBox(height: 16),
+          // Priority dropdown
+          Row(
+            children: [
+              const Text('Priority:'),
+              const SizedBox(width: 16),
+              Expanded(
+                child: DropdownButton<String>(
+                  value: _priority,
+                  items: const [
+                    DropdownMenuItem(value: 'all', child: Text('All Priorities')),
+                    DropdownMenuItem(value: 'high', child: Text('High')),
+                    DropdownMenuItem(value: 'medium', child: Text('Medium')),
+                    DropdownMenuItem(value: 'low', child: Text('Low')),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _priority = value ?? _priority;
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Date range pickers
+          ListTile(
+            title: Text(
+              'From: ${_startDate != null ? _startDate!.toLocal().toString().split(' ')[0] : 'Any'}',
+            ),
+            trailing: const Icon(Icons.calendar_today),
+            onTap: () async {
+              final d = await showDatePicker(
+                context: context,
+                initialDate: _startDate ?? DateTime.now(),
+                firstDate: DateTime(2000),
+                lastDate: DateTime(2050),
+              );
+              if (d != null) setState(() => _startDate = d);
+            },
+          ),
+          ListTile(
+            title: Text(
+              'To:   ${_endDate != null ? _endDate!.toLocal().toString().split(' ')[0] : 'Any'}',
+            ),
+            trailing: const Icon(Icons.calendar_today),
+            onTap: () async {
+              final d = await showDatePicker(
+                context: context,
+                initialDate: _endDate ?? DateTime.now(),
+                firstDate: DateTime(2000),
+                lastDate: DateTime(2050),
+              );
+              if (d != null) setState(() => _endDate = d);
+            },
+          ),
+          const SizedBox(height: 16),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(
                 context,
-                FilterSheetResult(sortBy: _sortBy, order: _order),
+                FilterSheetResult(
+                  sortBy: _sortBy,
+                  order: _order,
+                  priority: _priority,
+                  startDate: _startDate,
+                  endDate: _endDate,
+                ),
               );
             },
             child: const Text('Apply'),
