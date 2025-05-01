@@ -115,19 +115,26 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     }).toList();
   }
 
-  /// Opens form to add a new todo; awaits a bool to know if something was added
+  /// Opens form to add a new todo; pre-fills due date if in Calendar tab
   Future<void> _openAddForm() async {
-    final initial = _tabController.index == 1 ? _selectedDay : null;
+    DateTime? initial;
+    if (_tabController.index == 1 && _selectedDay != null) {
+      // strip off any time – make it midnight of the selected day
+      final d = _selectedDay!;
+      initial = DateTime(d.year, d.month, d.day);
+    }
+
     final added = await Navigator.push<bool>(
       context,
       MaterialPageRoute(builder: (_) => TodoFormScreen(initialDate: initial)),
     );
+
+    // if the form popped with `true`, re-run filters so the new item shows up
     if (added == true) {
-      setState(() {
-        _filteredTodos = _applyFilters();
-      });
+      setState(() => _filteredTodos = _applyFilters());
     }
   }
+
 
   /// Maps priority to a color
   Color _priorityColor(String priority) {
