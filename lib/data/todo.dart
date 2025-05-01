@@ -9,7 +9,7 @@ class Todo {
   final DateTime? completedAt;
   final DateTime? dueAt;
   final String priority;       // 'low' | 'medium' | 'high'
-  final List<String> labels;   // new: arbitrary labels
+  final List<String> labels;   // arbitrary labels
 
   Todo({
     required this.id,
@@ -31,22 +31,30 @@ class Todo {
       'completedAt': completedAt != null ? Timestamp.fromDate(completedAt!) : null,
       'dueAt': dueAt != null ? Timestamp.fromDate(dueAt!) : null,
       'priority': priority,
-      'labels': labels,             // persist labels array
+      'labels': labels,
     };
   }
 
-  /// Creates a Todo from a Firestore document snapshot.
+  /// Creates a Todo from a Firestore document snapshot,
+  /// safely handling any null Timestamps.
   factory Todo.fromSnapshot(DocumentSnapshot snapshot) {
     final data = snapshot.data() as Map<String, dynamic>;
+
+    DateTime safeDate(Object? o) =>
+        o is Timestamp ? o.toDate() : DateTime.now();
+
+    DateTime? safeNullableDate(Object? o) =>
+        o is Timestamp ? o.toDate() : null;
+
     return Todo(
       id: snapshot.id,
       text: data['text'] as String,
       uid: data['uid'] as String,
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      completedAt: data['completedAt'] != null ? (data['completedAt'] as Timestamp).toDate() : null,
-      dueAt: data['dueAt'] != null ? (data['dueAt'] as Timestamp).toDate() : null,
+      createdAt: safeDate(data['createdAt']),
+      completedAt: safeNullableDate(data['completedAt']),
+      dueAt: safeNullableDate(data['dueAt']),
       priority: data['priority'] as String? ?? 'low',
-      labels: List<String>.from(data['labels'] ?? []),  // read back labels
+      labels: List<String>.from(data['labels'] ?? []),
     );
   }
 }

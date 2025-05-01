@@ -19,7 +19,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   // Controllers and subscriptions
-  final _controller = TextEditingController();
   final _searchController = TextEditingController();
   StreamSubscription<List<Todo>>? _todoSubscription;
   late final TabController _tabController;
@@ -46,12 +45,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   @override
   void initState() {
     super.initState();
-    // Setup tabs
     _tabController = TabController(length: 2, vsync: this)
-      ..addListener(() {
-        setState(() {});
-      });
-    // Listen to Firestore
+      ..addListener(() => setState(() {}));
+
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       _todoSubscription = FirebaseFirestore.instance
@@ -71,7 +67,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   @override
   void dispose() {
-    _controller.dispose();
     _searchController.dispose();
     _todoSubscription?.cancel();
     _tabController.dispose();
@@ -120,25 +115,25 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     }).toList();
   }
 
-  /// Opens form to add a new todo; pre-fills due date if in Calendar tab
-  void _openAddForm() {
-    DateTime? initial = _tabController.index == 1 ? _selectedDay : null;
-    Navigator.push(
+  /// Opens form to add a new todo; awaits a bool to know if something was added
+  Future<void> _openAddForm() async {
+    final initial = _tabController.index == 1 ? _selectedDay : null;
+    final added = await Navigator.push<bool>(
       context,
       MaterialPageRoute(builder: (_) => TodoFormScreen(initialDate: initial)),
     );
+    if (added == true) {
+      setState(() {
+        _filteredTodos = _applyFilters();
+      });
+    }
   }
 
   /// Maps priority to a color
   Color _priorityColor(String priority) {
-    switch (priority) {
-      case 'high':
-        return Colors.red;
-      case 'medium':
-        return Colors.orange;
-      default:
-        return Colors.green;
-    }
+    if (priority == 'high') return Colors.red;
+    if (priority == 'medium') return Colors.orange;
+    return Colors.green;
   }
 
   /// Maps a label to a color
@@ -174,7 +169,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       body: TabBarView(
         controller: _tabController,
         children: [
-          // List Mode
+          // --- List Mode ---
           Column(
             children: [
               Padding(
@@ -230,9 +225,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                   .collection('todos')
                                   .doc(todo.id)
                                   .update({
-                                'completedAt': v == true
-                                    ? FieldValue.serverTimestamp()
-                                    : null
+                                'completedAt':
+                                v == true ? FieldValue.serverTimestamp() : null
                               });
                             },
                           ),
@@ -254,12 +248,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           Wrap(
                             spacing: 4,
                             children: todo.labels
-                                .map(
-                                  (lbl) => Chip(
-                                label: Text(lbl),
-                                backgroundColor: _labelColor(lbl),
-                              ),
-                            )
+                                .map((lbl) => Chip(
+                              label: Text(lbl),
+                              backgroundColor: _labelColor(lbl),
+                            ))
                                 .toList(),
                           ),
                         ],
@@ -267,9 +259,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       trailing: const Icon(Icons.arrow_forward_ios),
                       onTap: () => Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => DetailScreen(todo: todo),
-                        ),
+                        MaterialPageRoute(builder: (_) => DetailScreen(todo: todo)),
                       ),
                     );
                   },
@@ -277,7 +267,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               ),
             ],
           ),
-          // Calendar Mode
+
+          // --- Calendar Mode ---
           Column(
             children: [
               TableCalendar<Todo>(
@@ -285,7 +276,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 lastDay: DateTime.utc(2050, 12, 31),
                 focusedDay: _focusedDay,
                 calendarFormat: _calendarFormat,
-                availableCalendarFormats: const {CalendarFormat.month: 'Month', CalendarFormat.week: 'Week'},
+                availableCalendarFormats: const {
+                  CalendarFormat.month: 'Month',
+                  CalendarFormat.week: 'Week'
+                },
                 onFormatChanged: (fmt) => setState(() => _calendarFormat = fmt),
                 selectedDayPredicate: (d) => isSameDay(_selectedDay, d),
                 eventLoader: _getEventsForDay,
@@ -304,7 +298,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         child: Container(
                           width: 8,
                           height: 8,
-                          decoration: BoxDecoration(shape: BoxShape.circle, color: clr),
+                          decoration:
+                          BoxDecoration(shape: BoxShape.circle, color: clr),
                         ),
                       );
                     }
@@ -326,29 +321,32 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     leading: Container(
                       width: 12,
                       height: 12,
-                      decoration: BoxDecoration(shape: BoxShape.circle, color: _priorityColor(todo.priority)),
+                      decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: _priorityColor(todo.priority)),
                     ),
                     title: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment:
+                      CrossAxisAlignment.start,
                       children: [
                         Text(todo.text),
                         const SizedBox(height: 4),
                         Wrap(
                           spacing: 4,
                           children: todo.labels
-                              .map(
-                                (lbl) => Chip(
-                              label: Text(lbl),
-                              backgroundColor: _labelColor(lbl),
-                            ),
-                          )
+                              .map((lbl) => Chip(
+                            label: Text(lbl),
+                            backgroundColor:
+                            _labelColor(lbl),
+                          ))
                               .toList(),
                         ),
                       ],
                     ),
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => DetailScreen(todo: todo)),
+                      MaterialPageRoute(
+                          builder: (_) => DetailScreen(todo: todo)),
                     ),
                   ))
                       .toList(),
@@ -362,7 +360,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 }
 
-/// Full-screen form to add a new Todo with optional due date and priority
+/// Full-screen form to add a new Todo with optional due date, priority, and labels
 class TodoFormScreen extends StatefulWidget {
   final DateTime? initialDate;
   const TodoFormScreen({Key? key, this.initialDate}) : super(key: key);
@@ -375,11 +373,14 @@ class _TodoFormScreenState extends State<TodoFormScreen> {
   final _textController = TextEditingController();
   String _priority = 'low';
   DateTime? _dueDate;
+  final List<String> _allLabels = ['Work', 'Personal', 'Urgent', 'Shopping'];
+  late Set<String> _selectedLabels;
 
   @override
   void initState() {
     super.initState();
     _dueDate = widget.initialDate;
+    _selectedLabels = {};
   }
 
   @override
@@ -388,14 +389,36 @@ class _TodoFormScreenState extends State<TodoFormScreen> {
     super.dispose();
   }
 
-  Future<void> _pickDueDate() async {
+  /// Combined date + time picker
+  Future<void> _pickDueDateTime() async {
     final date = await showDatePicker(
       context: context,
       initialDate: _dueDate ?? DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2050),
     );
-    if (date != null) setState(() => _dueDate = date);
+    if (date == null) return;
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: _dueDate != null
+          ? TimeOfDay.fromDateTime(_dueDate!)
+          : TimeOfDay.now(),
+    );
+
+    setState(() {
+      if (time == null) {
+        _dueDate = DateTime(date.year, date.month, date.day);
+      } else {
+        _dueDate = DateTime(
+          date.year,
+          date.month,
+          date.day,
+          time.hour,
+          time.minute,
+        );
+      }
+    });
   }
 
   Future<void> _saveTodo() async {
@@ -407,13 +430,19 @@ class _TodoFormScreenState extends State<TodoFormScreen> {
         'uid': user.uid,
         'priority': _priority,
         'dueAt': _dueDate != null ? Timestamp.fromDate(_dueDate!) : null,
+        'labels': _selectedLabels.toList(),
       });
-      Navigator.pop(context);
+      Navigator.pop(context, true);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final dueText = _dueDate == null
+        ? 'None'
+        : '${_dueDate!.toLocal().toString().split(' ')[0]} '
+        '${TimeOfDay.fromDateTime(_dueDate!).format(context)}';
+
     return Scaffold(
       appBar: AppBar(title: const Text('Add Todo')),
       body: Padding(
@@ -443,9 +472,23 @@ class _TodoFormScreenState extends State<TodoFormScreen> {
             ),
             const SizedBox(height: 16),
             ListTile(
-              title: Text('Due Date: ${_dueDate != null ? _dueDate!.toLocal().toString().split(' ')[0] : 'None'}'),
+              title: Text('Due Date & Time: $dueText'),
               trailing: const Icon(Icons.calendar_today),
-              onTap: _pickDueDate,
+              onTap: _pickDueDateTime,
+            ),
+            const SizedBox(height: 16),
+            Text('Labels:', style: Theme.of(context).textTheme.bodyMedium),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: _allLabels.map((lbl) => FilterChip(
+                label: Text(lbl),
+                selected: _selectedLabels.contains(lbl),
+                onSelected: (sel) => setState(() {
+                  if (sel) _selectedLabels.add(lbl);
+                  else _selectedLabels.remove(lbl);
+                }),
+              )).toList(),
             ),
             const Spacer(),
             SizedBox(
