@@ -375,6 +375,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                   color: _priorityColor(todo.priority),
                                 ),
                               ),
+                            if (todo.description.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                              Text(
+                                todo.description,
+                                style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ],
                               const SizedBox(height: 4),
                               Wrap(
                                 spacing: 4,
@@ -554,6 +561,7 @@ class TodoFormScreen extends StatefulWidget {
 
 class _TodoFormScreenState extends State<TodoFormScreen> {
   final _textController = TextEditingController();
+  final _descriptionController = TextEditingController();
   String _priority = 'low';
   DateTime? _dueDate;
   final List<String> _allLabels = ['Work', 'Personal', 'Urgent', 'Shopping'];
@@ -569,6 +577,7 @@ class _TodoFormScreenState extends State<TodoFormScreen> {
   @override
   void dispose() {
     _textController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -609,6 +618,7 @@ class _TodoFormScreenState extends State<TodoFormScreen> {
     if (user != null && _textController.text.isNotEmpty) {
       await FirebaseFirestore.instance.collection('todos').add({
         'text': _textController.text,
+        'description': _descriptionController.text,
         'createdAt': FieldValue.serverTimestamp(),
         'uid': user.uid,
         'priority': _priority,
@@ -627,62 +637,91 @@ class _TodoFormScreenState extends State<TodoFormScreen> {
         '${TimeOfDay.fromDateTime(_dueDate!).format(context)}';
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(title: const Text('Add Todo')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: _textController,
-              decoration: const InputDecoration(labelText: 'Task'),
+      body: Column(
+        children: [
+          // 1) scrollable inputs
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                  16,
+                  16,
+                  16,
+                  MediaQuery.of(context).viewInsets.bottom + 16
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Task title
+                  TextField(
+                    controller: _textController,
+                    decoration: const InputDecoration(labelText: 'Task'),
+                  ),
+                  const SizedBox(height: 16),
+                  // Description
+                  TextField(
+                    controller: _descriptionController,
+                    decoration: const InputDecoration(labelText: 'Description'),
+                    maxLines: 2,
+                  ),
+                  const SizedBox(height: 16),
+                  // Priority picker
+                  Row(
+                    children: [
+                      const Text('Priority:'),
+                      const SizedBox(width: 16),
+                      DropdownButton<String>(
+                        value: _priority,
+                        items: const [
+                          DropdownMenuItem(value: 'low', child: Text('Low')),
+                          DropdownMenuItem(value: 'medium', child: Text('Medium')),
+                          DropdownMenuItem(value: 'high', child: Text('High')),
+                        ],
+                        onChanged: (v) => setState(() => _priority = v!),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Due date/time
+                  ListTile(
+                    title: Text('Due Date & Time: $dueText'),
+                    trailing: const Icon(Icons.calendar_today),
+                    onTap: _pickDueDateTime,
+                  ),
+                  const SizedBox(height: 16),
+                  // Labels
+                  Text('Labels:', style: Theme.of(context).textTheme.bodyMedium),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: _allLabels.map((lbl) => FilterChip(
+                      label: Text(lbl),
+                      selected: _selectedLabels.contains(lbl),
+                      onSelected: (sel) => setState(() {
+                        if (sel) _selectedLabels.add(lbl);
+                        else _selectedLabels.remove(lbl);
+                      }),
+                    )).toList(),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                const Text('Priority:'),
-                const SizedBox(width: 16),
-                DropdownButton<String>(
-                  value: _priority,
-                  items: const [
-                    DropdownMenuItem(value: 'low', child: Text('Low')),
-                    DropdownMenuItem(value: 'medium', child: Text('Medium')),
-                    DropdownMenuItem(value: 'high', child: Text('High')),
-                  ],
-                  onChanged: (v) => setState(() => _priority = v!),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              title: Text('Due Date & Time: $dueText'),
-              trailing: const Icon(Icons.calendar_today),
-              onTap: _pickDueDateTime,
-            ),
-            const SizedBox(height: 16),
-            Text('Labels:', style: Theme.of(context).textTheme.bodyMedium),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: _allLabels.map((lbl) => FilterChip(
-                label: Text(lbl),
-                selected: _selectedLabels.contains(lbl),
-                onSelected: (sel) => setState(() {
-                  if (sel) _selectedLabels.add(lbl);
-                  else _selectedLabels.remove(lbl);
-                }),
-              )).toList(),
-            ),
-            const Spacer(),
-            SizedBox(
+          ),
+
+          // 2) fixed Save button
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: SizedBox(
               width: double.infinity,
+              height: 48,
               child: ElevatedButton(
                 onPressed: _saveTodo,
                 child: const Text('Save'),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

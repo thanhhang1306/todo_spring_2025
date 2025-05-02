@@ -18,6 +18,7 @@ class DetailScreen extends StatefulWidget {
 
 class _DetailScreenState extends State<DetailScreen> {
   late TextEditingController _textController;
+  late TextEditingController _descriptionController;
   DateTime? _selectedDueDate;
   late Set<String> _selectedLabels;
   final List<String> _allLabels = ['Work', 'Personal', 'Urgent', 'Shopping'];
@@ -26,6 +27,7 @@ class _DetailScreenState extends State<DetailScreen> {
   void initState() {
     super.initState();
     _textController = TextEditingController(text: widget.todo.text);
+    _descriptionController = TextEditingController(text: widget.todo.description);
     _selectedDueDate = widget.todo.dueAt;
     _selectedLabels = widget.todo.labels.toSet();
   }
@@ -154,9 +156,40 @@ class _DetailScreenState extends State<DetailScreen> {
     );
   }
 
+  Future<void> _updateDescription(String newDesc) async {
+    await FirebaseFirestore.instance
+        .collection('todos')
+        .doc(widget.todo.id)
+        .update({'description': newDesc});
+  }
+
+  /// Call this to batch‐update title + description when the user taps “Save”
+  Future<void> _saveChanges() async {
+    final doc = FirebaseFirestore.instance
+        .collection('todos')
+        .doc(widget.todo.id);
+
+    final updates = <String, dynamic>{};
+    if (_textController.text != widget.todo.text) {
+      updates['text'] = _textController.text;
+    }
+    if (_descriptionController.text != widget.todo.description) {
+      updates['description'] = _descriptionController.text;
+    }
+
+    if (updates.isNotEmpty) {
+      await doc.update(updates);
+    }
+    Navigator.pop(context, true);
+  }
+
+
+
+
   @override
   void dispose() {
     _textController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -193,111 +226,145 @@ class _DetailScreenState extends State<DetailScreen> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 32.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: _textController,
-              decoration: const InputDecoration(
-                border: UnderlineInputBorder(),
+      body: Column(
+        children: [
+          // 1) Scrollable inputs
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                32,
+                16,
+                32,
+                MediaQuery.of(context).viewInsets.bottom + 16,
               ),
-              onSubmitted: (newText) async {
-                if (newText.isNotEmpty && newText != widget.todo.text) {
-                  await _updateText(newText);
-                }
-              },
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              title: const Text('Due Date'),
-              subtitle: Text(_selectedDueDate?.toLocal().toString().split('.')[0] ?? 'No due date'),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (_selectedDueDate != null)
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () async {
-                        await _updateDueDate(null);
+                  // Task title
+                  TextField(
+                    controller: _textController,
+                    decoration: const InputDecoration(labelText: 'Task'),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Description
+                  TextField(
+                    controller: _descriptionController,
+                    decoration: const InputDecoration(labelText: 'Description'),
+                    maxLines: 2,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Due Date picker + notification logic
+                  ListTile(
+                    title: const Text('Due Date'),
+                    subtitle: Text(
+                      _selectedDueDate != null
+                          ? _selectedDueDate!.toLocal().toString().split('.')[0]
+                          : 'No due date',
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_selectedDueDate != null)
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () async {
+                              await _updateDueDate(null);
+                              setState(() {
+                                _selectedDueDate = null;
+                              });
+                            },
+                          ),
+                        IconButton(
+                          icon: const Icon(Icons.calendar_today),
+                          onPressed: () async {
+                            final isGranted = await _requestNotificationPermission();
+                            if (!context.mounted) return;
+
+                            if (!isGranted) {
+                              _showPermissionDeniedSnackbar(context);
+                              return;
+                            }
+
+                            await _initializeNotifications();
+                            if (!context.mounted) return;
+
+                            final selectedDate = await showDatePicker(
+                              context: context,
+                              initialDate: _selectedDueDate ?? DateTime.now(),
+                              firstDate: DateTime.now(),
+                              lastDate: DateTime(2050),
+                            );
+                            if (!context.mounted || selectedDate == null) return;
+
+                            final selectedTime = await showTimePicker(
+                              context: context,
+                              initialTime: _selectedDueDate != null
+                                  ? TimeOfDay.fromDateTime(_selectedDueDate!)
+                                  : TimeOfDay.now(),
+                            );
+                            if (!context.mounted || selectedTime == null) return;
+
+                            final dueDate = DateTime(
+                              selectedDate.year,
+                              selectedDate.month,
+                              selectedDate.day,
+                              selectedTime.hour,
+                              selectedTime.minute,
+                            );
+
+                            setState(() {
+                              _selectedDueDate = dueDate;
+                            });
+
+                            await _updateDueDate(dueDate);
+                            await _scheduleNotification(
+                              widget.todo.id,
+                              dueDate,
+                              widget.todo.text,
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Labels
+                  Text('Labels:', style: Theme.of(context).textTheme.bodyMedium),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: _allLabels.map((lbl) => FilterChip(
+                      label: Text(lbl),
+                      selected: _selectedLabels.contains(lbl),
+                      onSelected: (sel) {
                         setState(() {
-                          _selectedDueDate = null;
+                          if (sel) _selectedLabels.add(lbl);
+                          else _selectedLabels.remove(lbl);
                         });
                       },
-                    ),
-                  IconButton(
-                    icon: const Icon(Icons.calendar_today),
-                    onPressed: () async {
-                      final isGranted = await _requestNotificationPermission();
-                      if (!context.mounted) return;
-
-                      if (!isGranted) {
-                        _showPermissionDeniedSnackbar(context);
-                        return;
-                      }
-
-                      await _initializeNotifications();
-                      if (!context.mounted) return;
-
-                      final selectedDate = await showDatePicker(
-                        context: context,
-                        initialDate: _selectedDueDate ?? DateTime.now(),
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime(2050),
-                      );
-                      if (!context.mounted) return;
-                      if (selectedDate == null) return;
-
-                      final selectedTime = await showTimePicker(
-                        context: context,
-                        initialTime: _selectedDueDate != null ? TimeOfDay.fromDateTime(_selectedDueDate!) : TimeOfDay.now(),
-                      );
-                      if (selectedTime == null) return;
-
-                      final DateTime dueDate = DateTime(
-                        selectedDate.year,
-                        selectedDate.month,
-                        selectedDate.day,
-                        selectedTime.hour,
-                        selectedTime.minute,
-                      );
-
-                      setState(() {
-                        _selectedDueDate = dueDate;
-                      });
-
-                      await _updateDueDate(dueDate);
-                      await _scheduleNotification(
-                        widget.todo.id,
-                        dueDate,
-                        widget.todo.text,
-                      );
-                    },
+                    )).toList(),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
-            // Label editing section
-            Text('Labels:', style: Theme.of(context).textTheme.bodyMedium),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: _allLabels.map((lbl) => FilterChip(
-                label: Text(lbl),
-                selected: _selectedLabels.contains(lbl),
-                onSelected: (sel) async {
-                  setState(() {
-                    if (sel) _selectedLabels.add(lbl);
-                    else _selectedLabels.remove(lbl);
-                  });
-                  await _updateLabels();
-                },
-              )).toList(),
+          ),
+
+          // 2) Fixed Save button at bottom
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            child: SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: _saveChanges,
+                child: const Text('Save'),
+              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

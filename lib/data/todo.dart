@@ -1,31 +1,34 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Model representing a TODO item, including priority and labels.
+/// Model representing a TODO item, including priority, labels, and description.
 class Todo {
   final String id;
   final String text;
+  final String description;       // Description of the task
   final String uid;
   final DateTime createdAt;
   final DateTime? completedAt;
   final DateTime? dueAt;
-  final String priority;       // 'low' | 'medium' | 'high'
-  final List<String> labels;   // arbitrary labels
+  final String priority;          // 'low' | 'medium' | 'high'
+  final List<String> labels;      // arbitrary labels
 
   Todo({
     required this.id,
     required this.text,
+    this.description = '',
     required this.uid,
     required this.createdAt,
-    required this.completedAt,
-    required this.dueAt,
+    this.completedAt,
+    this.dueAt,
     this.priority = 'low',
     this.labels = const [],
   });
 
-  /// Converts the Todo into a Firestore-friendly map.
+  /// Converts this Todo into a Firestore-friendly map.
   Map<String, dynamic> toSnapshot() {
     return {
       'text': text,
+      'description': description,
       'uid': uid,
       'createdAt': Timestamp.fromDate(createdAt),
       'completedAt': completedAt != null ? Timestamp.fromDate(completedAt!) : null,
@@ -35,21 +38,23 @@ class Todo {
     };
   }
 
-  /// Creates a Todo from a Firestore document snapshot,
-  /// safely handling any null Timestamps.
+  /// Creates a Todo from a Firestore document snapshot, handling missing fields.
   factory Todo.fromSnapshot(DocumentSnapshot snapshot) {
-    final data = snapshot.data() as Map<String, dynamic>;
+    final data = snapshot.data() as Map<String, dynamic>? ?? {};
 
-    DateTime safeDate(Object? o) =>
-        o is Timestamp ? o.toDate() : DateTime.now();
+    // Safely parse timestamps
+    DateTime safeDate(Object? o) => o is Timestamp ? o.toDate() : DateTime.now();
+    DateTime? safeNullableDate(Object? o) => o is Timestamp ? o.toDate() : null;
 
-    DateTime? safeNullableDate(Object? o) =>
-        o is Timestamp ? o.toDate() : null;
+    // Safely parse description, defaulting to empty string
+    final rawDesc = data['description'];
+    final safeDesc = rawDesc is String ? rawDesc : '';
 
     return Todo(
       id: snapshot.id,
-      text: data['text'] as String,
-      uid: data['uid'] as String,
+      text: data['text'] as String? ?? '',
+      description: safeDesc,
+      uid: data['uid'] as String? ?? '',
       createdAt: safeDate(data['createdAt']),
       completedAt: safeNullableDate(data['completedAt']),
       dueAt: safeNullableDate(data['dueAt']),
