@@ -22,10 +22,28 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   final _searchController = TextEditingController();
   StreamSubscription<List<Todo>>? _todoSubscription;
   late final TabController _tabController;
+  String _statusFilter = 'all'; // 'all' | 'active' | 'completed'
+  bool _isSelectionMode = false;
 
   // Data
   List<Todo> _todos = [];
   List<Todo>? _filteredTodos;
+  /// Holds the IDs of any todos the user has “checked” for bulk actions.
+  Set<String> _selectedTodoIds = {};
+
+  /// Deletes all selected docs in one batch, then clears selection.
+  Future<void> _deleteSelected() async {
+    if (_selectedTodoIds.isEmpty) return;
+    final batch = FirebaseFirestore.instance.batch();
+    for (final id in _selectedTodoIds) {
+      batch.delete(FirebaseFirestore.instance.collection('todos').doc(id));
+    }
+    await batch.commit();
+    setState(() {
+      _selectedTodoIds.clear();
+      _filteredTodos = _applyFilters();
+    });
+  }
 
   // List-mode state
   FilterSheetResult _filters = FilterSheetResult(
@@ -76,44 +94,64 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   /// Applies text search and filter sheet settings
   List<Todo> _applyFilters() {
     var list = _todos
-        .where((t) => t.text.toLowerCase().contains(_searchController.text.toLowerCase()))
+        .where((t) =>
+        t.text.toLowerCase().contains(_searchController.text.toLowerCase()))
         .toList();
+    if (_statusFilter == 'active') {
+      list = list.where((t) => t.completedAt == null).toList();
+    } else if (_statusFilter == 'completed') {
+      list = list.where((t) => t.completedAt != null).toList();
+    }
     // Priority filter
     if (_filters.priority != 'all') {
       list = list.where((t) => t.priority == _filters.priority).toList();
     }
     // Label filter
     if (_filters.labels.isNotEmpty) {
-      list = list.where((t) => t.labels.any((lbl) => _filters.labels.contains(lbl))).toList();
+      list = list.where((t) =>
+          t.labels.any((lbl) => _filters.labels.contains(lbl))).toList();
     }
     // Date range filter
     if (_filters.startDate != null) {
-      list = list.where((t) => t.dueAt != null && !t.dueAt!.isBefore(_filters.startDate!)).toList();
+      list = list.where((t) => t.dueAt != null &&
+          !t.dueAt!.isBefore(_filters.startDate!)).toList();
     }
     if (_filters.endDate != null) {
-      list = list.where((t) => t.dueAt != null && !t.dueAt!.isAfter(_filters.endDate!)).toList();
+      list = list.where((t) => t.dueAt != null &&
+          !t.dueAt!.isAfter(_filters.endDate!)).toList();
     }
     // Sorting
     if (_filters.sortBy == 'date') {
-      list.sort((a, b) => _filters.order == 'ascending'
+      list.sort((a, b) =>
+      _filters.order == 'ascending'
           ? a.createdAt.compareTo(b.createdAt)
           : b.createdAt.compareTo(a.createdAt));
     } else {
-      list.sort((a, b) => _filters.order == 'ascending'
-          ? (a.completedAt ?? DateTime(0)).compareTo(b.completedAt ?? DateTime(0))
-          : (b.completedAt ?? DateTime(0)).compareTo(a.completedAt ?? DateTime(0)));
+      list.sort((a, b) =>
+      _filters.order == 'ascending'
+          ? (a.completedAt ?? DateTime(0)).compareTo(
+          b.completedAt ?? DateTime(0))
+          : (b.completedAt ?? DateTime(0)).compareTo(
+          a.completedAt ?? DateTime(0)));
     }
     return list;
   }
 
-  /// Returns todos due on a specific day
+  /// Returns todos due on a specific day, applying the same “archive” filter
   List<Todo> _getEventsForDay(DateTime day) {
     return _todos.where((todo) {
+      // 1) does it fall on this day?
       if (todo.dueAt == null) return false;
-      final d = DateTime(todo.dueAt!.year, todo.dueAt!.month, todo.dueAt!.day);
-      return isSameDay(d, day);
+      if (!isSameDay(todo.dueAt!, day)) return false;
+
+      // 2) archive filter (“all” | “active” | “completed”)
+      if (_statusFilter == 'active' && todo.completedAt != null) return false;
+      if (_statusFilter == 'completed' && todo.completedAt == null) return false;
+
+      return true;
     }).toList();
   }
+
 
   /// Opens form to add a new todo; pre-fills due date if in Calendar tab
   Future<void> _openAddForm() async {
@@ -166,8 +204,56 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         title: const Text('TODO Spring 2025'),
         bottom: TabBar(
           controller: _tabController,
-          tabs: const [Tab(text: 'List'), Tab(text: 'Calendar')],
+          tabs: const [
+            Tab(text: 'List'),
+            Tab(text: 'Calendar'),
+          ],
         ),
+        actions: [
+          if (_isSelectionMode) ...[
+            IconButton(
+              icon: const Icon(Icons.delete),
+              tooltip: 'Delete selected',
+              onPressed: _deleteSelected,
+            ),
+            IconButton(
+              icon: const Icon(Icons.close),
+              tooltip: 'Cancel delete',
+              onPressed: () {
+                setState(() {
+                  _isSelectionMode = false;
+                  _selectedTodoIds.clear();
+                });
+              },
+            ),
+          ] else ...[
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              tooltip: 'Select to delete',
+              onPressed: () {
+                setState(() {
+                  _isSelectionMode = true;
+                  _selectedTodoIds.clear();
+                });
+              },
+            ),
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.archive),
+              tooltip: 'Show…',
+              onSelected: (v) {
+                setState(() {
+                  _statusFilter = v;
+                  _filteredTodos = _applyFilters();
+                });
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'all', child: Text('All tasks')),
+                PopupMenuItem(value: 'active', child: Text('Active only')),
+                PopupMenuItem(value: 'completed', child: Text('Completed only')),
+              ],
+            ),
+          ],
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _openAddForm,
@@ -180,7 +266,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           Column(
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 8),
                 child: TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
@@ -189,7 +276,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     suffixIcon: IconButton(
                       icon: const Icon(Icons.filter_list),
                       onPressed: () async {
-                        final result = await showModalBottomSheet<FilterSheetResult>(
+                        final result = await showModalBottomSheet<
+                            FilterSheetResult>(
                           context: context,
                           builder: (_) => FilterSheet(initialFilters: _filters),
                         );
@@ -202,7 +290,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       },
                     ),
                   ),
-                  onChanged: (_) => setState(() => _filteredTodos = _applyFilters()),
+                  onChanged: (_) =>
+                      setState(() => _filteredTodos = _applyFilters()),
                 ),
               ),
               Expanded(
@@ -212,66 +301,104 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   itemCount: _filteredTodos!.length,
                   itemBuilder: (ctx, i) {
                     final todo = _filteredTodos![i];
-                    return ListTile(
-                      leading: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 12,
-                            height: 12,
-                            decoration: BoxDecoration(
-                              color: _priorityColor(todo.priority),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Checkbox(
-                            value: todo.completedAt != null,
-                            onChanged: (v) {
-                              FirebaseFirestore.instance
-                                  .collection('todos')
-                                  .doc(todo.id)
-                                  .update({
-                                'completedAt':
-                                v == true ? FieldValue.serverTimestamp() : null
+                    final selected = _selectedTodoIds.contains(todo.id);
+
+                    return InkWell(
+                      onLongPress: () {
+                        setState(() {
+                          _isSelectionMode = true;
+                          if (selected) _selectedTodoIds.remove(todo.id);
+                          else _selectedTodoIds.add(todo.id);
+                        });
+                      },
+                      onTap: _isSelectionMode
+                          ? () {
+                        setState(() {
+                          if (selected) _selectedTodoIds.remove(todo.id);
+                          else _selectedTodoIds.add(todo.id);
+                        });
+                      }
+                          : null,
+                      child: Container(
+                        color: selected ? Colors.blue.withOpacity(.1) : null,
+                        child: ListTile(
+                          leading: _isSelectionMode
+                              ? Checkbox(
+                            value: selected,
+                            onChanged: (_) {
+                              setState(() {
+                                if (selected)
+                                  _selectedTodoIds.remove(todo.id);
+                                else
+                                  _selectedTodoIds.add(todo.id);
                               });
                             },
+                          )
+                              : Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 12,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  color: _priorityColor(todo.priority),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Checkbox(
+                                value: todo.completedAt != null,
+                                onChanged: (v) {
+                                  FirebaseFirestore.instance
+                                      .collection('todos')
+                                      .doc(todo.id)
+                                      .update({
+                                    'completedAt': v == true
+                                        ? FieldValue.serverTimestamp()
+                                        : null,
+                                  });
+                                },
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      title: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            todo.text,
-                            style: todo.completedAt != null
-                                ? TextStyle(
-                              color: _priorityColor(todo.priority),
-                              decoration: TextDecoration.lineThrough,
-                            )
-                                : TextStyle(color: _priorityColor(todo.priority)),
+                          title: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                todo.text,
+                                style: todo.completedAt != null
+                                    ? TextStyle(
+                                  color: _priorityColor(todo.priority),
+                                  decoration: TextDecoration.lineThrough,
+                                )
+                                    : TextStyle(
+                                  color: _priorityColor(todo.priority),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Wrap(
+                                spacing: 4,
+                                children: todo.labels.map((lbl) => Chip(
+                                  label: Text(lbl),
+                                  backgroundColor: _labelColor(lbl),
+                                )).toList(),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 4),
-                          Wrap(
-                            spacing: 4,
-                            children: todo.labels
-                                .map((lbl) => Chip(
-                              label: Text(lbl),
-                              backgroundColor: _labelColor(lbl),
-                            ))
-                                .toList(),
+                          trailing: _isSelectionMode ? null : const Icon(Icons.arrow_forward_ios),
+                          onTap: _isSelectionMode
+                              ? null
+                              : () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => DetailScreen(todo: todo)),
                           ),
-                        ],
-                      ),
-                      trailing: const Icon(Icons.arrow_forward_ios),
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => DetailScreen(todo: todo)),
+                        ),
                       ),
                     );
                   },
                 ),
               ),
+
             ],
           ),
 
@@ -313,50 +440,99 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     return null;
                   },
                 ),
-                onDaySelected: (sel, foc) => setState(() {
-                  _selectedDay = sel;
-                  _focusedDay = foc;
-                }),
+                onDaySelected: (sel, foc) =>
+                    setState(() {
+                      _selectedDay = sel;
+                      _focusedDay = foc;
+                    }),
               ),
               const Divider(),
               Expanded(
-                child: _getEventsForDay(_selectedDay ?? _focusedDay).isEmpty
-                    ? const Center(child: Text('No tasks'))
-                    : ListView(
-                  children: _getEventsForDay(_selectedDay ?? _focusedDay)
-                      .map((todo) => ListTile(
-                    leading: Container(
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: _priorityColor(todo.priority)),
-                    ),
-                    title: Column(
-                      crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                      children: [
-                        Text(todo.text),
-                        const SizedBox(height: 4),
-                        Wrap(
-                          spacing: 4,
-                          children: todo.labels
-                              .map((lbl) => Chip(
-                            label: Text(lbl),
-                            backgroundColor:
-                            _labelColor(lbl),
-                          ))
-                              .toList(),
-                        ),
-                      ],
-                    ),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => DetailScreen(todo: todo)),
-                    ),
-                  ))
-                      .toList(),
+                child: Builder(
+                  builder: (context) {
+                    final todays = _getEventsForDay(_selectedDay ?? _focusedDay);
+                    if (todays.isEmpty) {
+                      return const Center(child: Text('No tasks'));
+                    }
+                    return ListView.builder(
+                      itemCount: todays.length,
+                      itemBuilder: (ctx, i) {
+                        final todo = todays[i];
+                        final selected = _selectedTodoIds.contains(todo.id);
+
+                        return InkWell(
+                          onLongPress: () {
+                            setState(() {
+                              _isSelectionMode = true;
+                              if (selected) _selectedTodoIds.remove(todo.id);
+                              else _selectedTodoIds.add(todo.id);
+                            });
+                          },
+                          onTap: _isSelectionMode
+                              ? () {
+                            setState(() {
+                              if (selected) _selectedTodoIds.remove(todo.id);
+                              else _selectedTodoIds.add(todo.id);
+                            });
+                          }
+                              : () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => DetailScreen(todo: todo)),
+                          ),
+                          child: Container(
+                            color: selected ? Colors.blue.withOpacity(.1) : null,
+                            child: ListTile(
+                              leading: _isSelectionMode
+                                  ? Checkbox(
+                                value: selected,
+                                onChanged: (_) {
+                                  setState(() {
+                                    if (selected) _selectedTodoIds.remove(todo.id);
+                                    else _selectedTodoIds.add(todo.id);
+                                  });
+                                },
+                              )
+                                  : Container(
+                                width: 12,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: _priorityColor(todo.priority),
+                                ),
+                              ),
+                              title: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    todo.text,
+                                    style: todo.completedAt != null
+                                        ? TextStyle(
+                                      color: _priorityColor(todo.priority),
+                                      decoration: TextDecoration.lineThrough,
+                                    )
+                                        : TextStyle(
+                                      color: _priorityColor(todo.priority),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Wrap(
+                                    spacing: 4,
+                                    children: todo.labels
+                                        .map((lbl) => Chip(
+                                      label: Text(lbl),
+                                      backgroundColor: _labelColor(lbl),
+                                    ))
+                                        .toList(),
+                                  ),
+                                ],
+                              ),
+                              trailing: _isSelectionMode ? null : const Icon(Icons.arrow_forward_ios),
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
                 ),
               ),
             ],
