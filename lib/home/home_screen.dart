@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:todo_spring_2025/home/dashboard/dashboard_screen.dart';
+
 
 import '../data/todo.dart';
 import 'details/detail_screen.dart';
@@ -227,6 +229,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               },
             ),
           ] else ...[
+            IconButton(
+              icon: const Icon(Icons.dashboard),
+              tooltip: 'Dashboard',
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => DashboardScreen()),
+                );
+              },
+            ),
             IconButton(
               icon: const Icon(Icons.delete_outline),
               tooltip: 'Select to delete',
