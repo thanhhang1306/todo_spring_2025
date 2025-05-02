@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import '../../data/todo.dart';
+import 'package:flutter/foundation.dart';
+
 
 final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
@@ -177,9 +179,17 @@ class _DetailScreenState extends State<DetailScreen> {
       updates['description'] = _descriptionController.text;
     }
 
+    // labels — compare sets so re‐saving unchanged labels is skipped
+    if (!setEquals(_selectedLabels, widget.todo.labels.toSet())) {
+      updates['labels'] = _selectedLabels.toList();
+    }
+
     if (updates.isNotEmpty) {
       await doc.update(updates);
+      if (mounted) ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Todo updated!')));
     }
+
     Navigator.pop(context, true);
   }
 
