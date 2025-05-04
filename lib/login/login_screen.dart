@@ -1,4 +1,3 @@
-// lib/login/login_screen.dart
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -45,7 +44,6 @@ class _LoginScreenState extends State<LoginScreen>
       idToken: googleAuth.idToken,
     );
     await FirebaseAuth.instance.signInWithCredential(credential);
-    // leave navigation to HomeScreen for later
   }
 
   @override
@@ -67,29 +65,55 @@ class _LoginScreenState extends State<LoginScreen>
           ),
           child: Center(
             child: Card(
-              elevation: 8,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-              margin: const EdgeInsets.symmetric(horizontal: 32),
+              elevation: 12,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+              margin: const EdgeInsets.symmetric(horizontal: 24),
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+                padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 32),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Optional: drop in your pixel-art logo here
-                    // SizedBox(height: 100, child: Image.asset('assets/logo.png')),
                     Text(
-                      'Welcome to DART Sidious',
-                      style: Theme.of(context).textTheme.headlineSmall,
+                      'DART Sidious',
+                      style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                        color: scheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Your ultimate task manager',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 32),
                     SignInButton(
                       Buttons.google,
                       onPressed: _handleGoogleSignIn,
-                      elevation: 4,
-                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                      elevation: 6,
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    OutlinedButton(
+                      onPressed: () {
+                        Navigator.pushReplacementNamed(context, '/home');
+                      },
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: scheme.primary),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+                      ),
+                      child: Text(
+                        'Continue as Guest',
+                        style: TextStyle(color: scheme.primary),
                       ),
                     ),
                   ],

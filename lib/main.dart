@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:todo_spring_2025/router/router_screen.dart';
+import 'package:todo_spring_2025/login/login_screen.dart';
+import 'package:todo_spring_2025/home/home_screen.dart';
 import 'firebase_options.dart';
 import 'package:timezone/data/latest.dart' as tz;
 
@@ -36,7 +37,11 @@ class MyApp extends StatelessWidget {
         textTheme: GoogleFonts.sairaCondensedTextTheme(ThemeData.dark().textTheme),
       ),
       themeMode: ThemeMode.system,
-      home: RouterScreen(),
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const LoginScreen(),
+        '/home': (context) => const HomeScreen(),
+      },
     );
   }
 }
