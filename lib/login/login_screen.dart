@@ -112,7 +112,9 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('DART SIDIOUS', style: titleStyle, textAlign: TextAlign.center),
+                  Text('DARTHUB', style: titleStyle, textAlign: TextAlign.center),
+                  const SizedBox(height: 8),
+                  Text('by DART SIDIOUS', style: titleStyle.copyWith(fontSize:12), textAlign: TextAlign.center),
                   const SizedBox(height: 12),
                   Text('PRESS START', style: subStyle),
                   const SizedBox(height: 24),
