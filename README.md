@@ -1,4 +1,4 @@
-# TODO: Spring 2025 
+# DARTHUB: A #todo app
 
 Team name: DART Sidious
 
