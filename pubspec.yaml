@@ -28,3 +28,11 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - fonts/
+
+  fonts:
+    - family: PressStart2P
+      fonts:
+        - asset: fonts/PressStart2P-Regular.ttf

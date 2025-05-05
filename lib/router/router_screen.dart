@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:todo_spring_2025/home/home_screen.dart';
-import 'package:todo_spring_2025/login/login_screen.dart';
+import '../home/home_screen.dart'; // Para aceder a HomeScreen
+import '../login/login_screen.dart'; // Para aceder a LoginScreen
 
 class RouterScreen extends StatelessWidget {
   const RouterScreen({super.key});
