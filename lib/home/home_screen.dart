@@ -608,7 +608,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           appBar: AppBar(
             // Estilo vem do AppBarTheme
             // backgroundColor: RetroTheme.panel,
-            title: Text('DART SIDIOUS', style: textTheme.titleLarge), // Usar estilo do tema
+            title: Text('DARTHUB', style: textTheme.titleLarge), // Usar estilo do tema
             bottom: TabBar(
               controller: _tabController,
               // Estilo vem do TabBarTheme
