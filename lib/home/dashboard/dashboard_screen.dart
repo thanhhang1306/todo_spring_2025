@@ -94,7 +94,7 @@ class DashboardScreen extends StatelessWidget {
         leading: IconButton( // Adicionar botão de voltar explícito
           icon: const Icon(Icons.arrow_back_ios, size: 18), // Usar IconTheme
           onPressed: () => Navigator.of(context).pop(),
-          tooltip: 'Voltar',
+          tooltip: 'Back',
         ),
       ),
       body: SafeArea(
@@ -125,13 +125,13 @@ class DashboardScreen extends StatelessWidget {
                     ),
                   ),
                   title: Text(
-                      user.displayName ?? user.email ?? 'Usuário Anônimo', // Mostrar nome ou email
+                      user.displayName ?? user.email ?? 'Guest User', // Mostrar nome ou email
                       style: textTheme.bodyMedium?.copyWith(fontSize: 11)
                   ),
                   // subtitle: Text(user.email ?? '', style: textTheme.bodySmall), // Pode adicionar email como subtítulo
                   trailing: IconButton(
                     icon: const Icon(Icons.logout), // Ícone de logout (cor do IconTheme)
-                    tooltip: 'Sair',
+                    tooltip: 'Exit',
                     onPressed: () => _signOut(context), // Chama a função signOut
                   ),
                 ),

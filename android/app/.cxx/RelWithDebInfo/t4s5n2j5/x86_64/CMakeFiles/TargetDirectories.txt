@@ -1,0 +1,2 @@
+/Users/adeildovieira/Documents/CompSci/StockholmAbroad/AppDev/final_project/todo_spring_2025/android/app/.cxx/RelWithDebInfo/t4s5n2j5/x86_64/CMakeFiles/edit_cache.dir
+/Users/adeildovieira/Documents/CompSci/StockholmAbroad/AppDev/final_project/todo_spring_2025/android/app/.cxx/RelWithDebInfo/t4s5n2j5/x86_64/CMakeFiles/rebuild_cache.dir

@@ -331,16 +331,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: RetroTheme.panel,
-        title: Text('Confirmar Exclusão', style: Theme.of(ctx).textTheme.bodyLarge?.copyWith(color: RetroTheme.accent)),
-        content: Text('Deseja realmente excluir os ${_selectedTodoIds.length} itens selecionados?', style: Theme.of(ctx).textTheme.bodyMedium),
+        title: Text('Confirm deletion', style: Theme.of(ctx).textTheme.bodyLarge?.copyWith(color: RetroTheme.accent)),
+        content: Text('Do you really want to delete the ${_selectedTodoIds.length} selected items?', style: Theme.of(ctx).textTheme.bodyMedium),
         actions: [
           TextButton(
             style: TextButton.styleFrom(foregroundColor: RetroTheme.textSecondary),
-            child: const Text('Cancelar'),
+            child: const Text('Cancel'),
             onPressed: () => Navigator.of(ctx).pop(false),
           ),
           ElevatedButton(
-            child: const Text('Excluir'),
+            child: const Text('Delete'),
             onPressed: () => Navigator.of(ctx).pop(true),
           ),
         ],
@@ -363,12 +363,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           // _filteredTodos = _applyFilters(); // StreamBuilder atualiza
         });
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${_selectedTodoIds.length} itens excluídos.', style: Theme.of(context).textTheme.bodySmall), backgroundColor: RetroTheme.accent)
+            SnackBar(content: Text('${_selectedTodoIds.length} items deleted.', style: Theme.of(context).textTheme.bodySmall), backgroundColor: RetroTheme.accent)
         );
       } catch (e) {
-        print("Erro ao excluir em lote: $e");
+        print("Batch delete error: $e");
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erro ao excluir itens.', style: Theme.of(context).textTheme.bodySmall), backgroundColor: Colors.redAccent)
+            SnackBar(content: Text('Error deleting items.', style: Theme.of(context).textTheme.bodySmall), backgroundColor: Colors.redAccent)
         );
       }
     }
@@ -388,7 +388,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       });
       // StreamBuilder atualiza a UI
     } catch (e) {
-      print("Erro ao atualizar status do todo: $e");
+      print("Error updating to-do status: $e");
       // Mostrar erro ao usuário
     }
   }
@@ -673,7 +673,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 // Botão Filtro de Status (Archive)
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.archive_outlined), // Ícone diferente
-                  tooltip: 'Mostrar Tarefas',
+                  tooltip: 'Show To-Dos',
                   color: RetroTheme.panel, // Fundo do menu
                   // Estilo do item vem do PopupMenuTheme
                   onSelected: (value) {
@@ -683,9 +683,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     });
                   },
                   itemBuilder: (_) => [
-                    PopupMenuItem(value: 'all', child: Text('Todas', style: textTheme.bodySmall)),
-                    PopupMenuItem(value: 'active', child: Text('Ativas', style: textTheme.bodySmall)),
-                    PopupMenuItem(value: 'completed', child: Text('Completas', style: textTheme.bodySmall)),
+                    PopupMenuItem(value: 'all', child: Text('All', style: textTheme.bodySmall)),
+                    PopupMenuItem(value: 'active', child: Text('Active', style: textTheme.bodySmall)),
+                    PopupMenuItem(value: 'completed', child: Text('Completed', style: textTheme.bodySmall)),
                   ],
                 ),
               ],
@@ -694,7 +694,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           floatingActionButton: FloatingActionButton(
             // Estilo vem do FloatingActionButtonTheme
             onPressed: _openTodoForm, // Abre form para ADICIONAR
-            tooltip: 'Adicionar Tarefa',
+            tooltip: 'Add To-Do',
             child: const Icon(Icons.add),
           ),
           body: TabBarView(
@@ -724,11 +724,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             style: textTheme.bodyMedium?.copyWith(fontSize: 11), // Estilo do texto digitado
             decoration: InputDecoration(
               // Estilo geral vem do InputTheme
-              hintText: 'Buscar tarefas...', // Usar hintText em vez de labelText
+              hintText: 'Search To-Do', // Usar hintText em vez de labelText
               prefixIcon: const Icon(Icons.search, size: 18), // Ícone de busca
               suffixIcon: IconButton( // Botão para abrir filtros avançados
                 icon: const Icon(Icons.filter_alt_outlined, size: 18),
-                tooltip: 'Filtros Avançados',
+                tooltip: 'Advanced Filters',
                 onPressed: () async {
                   final result = await showModalBottomSheet<FilterSheetResult>(
                     context: context,
@@ -752,7 +752,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           child: (_filteredTodos == null) // Verifica se ainda está carregando
               ? const Center(child: CircularProgressIndicator(color: RetroTheme.accent))
               : (_filteredTodos!.isEmpty) // Verifica se a lista filtrada está vazia
-              ? Center(child: Text('Nenhuma tarefa encontrada!', style: textTheme.bodyMedium))
+              ? Center(child: Text('No to-do found!', style: textTheme.bodyMedium))
               : ListView.builder(
             padding: const EdgeInsets.only(bottom: 80), // Espaço para o FAB não cobrir o último item
             itemCount: _filteredTodos!.length,
@@ -789,8 +789,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           // Formato
           calendarFormat: _calendarFormat,
           availableCalendarFormats: const { // Formatos disponíveis
-            CalendarFormat.month: 'Mês', // Textos em português
-            CalendarFormat.week: 'Semana',
+            CalendarFormat.month: 'Month', // Textos em português
+            CalendarFormat.week: 'Week',
           },
           onFormatChanged: (format) {
             if (_calendarFormat != format) {
@@ -871,7 +871,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
           child: Text(
-            'Tarefas para: ${DateFormat('dd/MM/yyyy').format(_selectedDay ?? _focusedDay)}', // Mostra data selecionada
+            'To-Dos for: ${DateFormat('MM/dd/yyyy').format(_selectedDay ?? _focusedDay)}', // Mostra data selecionada
             style: textTheme.bodyMedium?.copyWith(color: RetroTheme.accent),
           ),
         ),
@@ -880,7 +880,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             builder: (context) {
               final todosDoDia = _getEventsForDay(_selectedDay ?? _focusedDay); // Pega eventos do dia
               if (todosDoDia.isEmpty) {
-                return Center(child: Text('Nenhuma tarefa para este dia.', style: textTheme.bodyMedium));
+                return Center(child: Text('No to-do for this day..', style: textTheme.bodyMedium));
               }
               // Usa o mesmo ListView.builder da outra tab
               return ListView.builder(
@@ -1045,7 +1045,7 @@ class _TodoFormScreenState extends State<TodoFormScreen> {
     // Validação básica: precisa de texto e usuário logado
     if (user == null || _textController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('O título da tarefa não pode estar vazio!', style: Theme.of(context).textTheme.bodySmall), backgroundColor: Colors.redAccent)
+          SnackBar(content: Text('The To-Do title cannot be empty!', style: Theme.of(context).textTheme.bodySmall), backgroundColor: Colors.redAccent)
       );
       return;
     }
@@ -1086,10 +1086,10 @@ class _TodoFormScreenState extends State<TodoFormScreen> {
       if (mounted) Navigator.pop(context, true);
 
     } catch (e) {
-      print("Erro ao salvar todo: $e");
+      print("Error saving to-do: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erro ao salvar tarefa: $e', style: Theme.of(context).textTheme.bodySmall), backgroundColor: Colors.redAccent)
+            SnackBar(content: Text('Error saving to-do: $e', style: Theme.of(context).textTheme.bodySmall), backgroundColor: Colors.redAccent)
         );
       }
     } finally {
@@ -1105,9 +1105,9 @@ class _TodoFormScreenState extends State<TodoFormScreen> {
     // Formata o texto da data/hora de vencimento para exibição
     final String dueText;
     if (_dueDate == null) {
-      dueText = 'Nenhum';
+      dueText = 'None';
     } else {
-      dueText = DateFormat('dd/MM/yy HH:mm').format(_dueDate!); // Formato pt-BR
+      dueText = DateFormat('MM/dd/yy HH:mm').format(_dueDate!);
     }
 
     return Scaffold(
@@ -1115,13 +1115,13 @@ class _TodoFormScreenState extends State<TodoFormScreen> {
       appBar: AppBar(
         // Estilo do AppBar vem do tema
         title: Text(
-            widget.todoToEdit == null ? 'Nova Tarefa' : 'Editar Tarefa',
+            widget.todoToEdit == null ? 'New To-Do' : 'Edit To-Do',
             style: textTheme.titleLarge?.copyWith(fontSize: 16) // Título menor no form
         ),
         leading: IconButton( // Botão de voltar customizado
           icon: const Icon(Icons.arrow_back_ios, size: 18),
           onPressed: () => Navigator.maybePop(context), // Tenta voltar
-          tooltip: 'Voltar',
+          tooltip: 'Back',
         ),
       ),
       body: Column(
@@ -1139,7 +1139,7 @@ class _TodoFormScreenState extends State<TodoFormScreen> {
                     style: textTheme.bodyMedium, // Estilo do texto digitado
                     decoration: const InputDecoration(
                       // Estilo vem do InputTheme
-                      labelText: 'Tarefa *', // Indica campo obrigatório
+                      labelText: 'To-Do *', // Indica campo obrigatório
                     ),
                     textInputAction: TextInputAction.next, // Vai para próximo campo com Enter
                   ),
@@ -1150,7 +1150,7 @@ class _TodoFormScreenState extends State<TodoFormScreen> {
                     controller: _descriptionController,
                     style: textTheme.bodyMedium,
                     decoration: const InputDecoration(
-                      labelText: 'Descrição',
+                      labelText: 'Description',
                       // hintText: 'Adicione mais detalhes...' // Opcional
                     ),
                     maxLines: 3, // Permite múltiplas linhas
@@ -1161,7 +1161,7 @@ class _TodoFormScreenState extends State<TodoFormScreen> {
                   // --- Prioridade ---
                   Row(
                     children: [
-                      Text('Prioridade:', style: textTheme.bodyMedium),
+                      Text('Priority:', style: textTheme.bodyMedium),
                       const SizedBox(width: 16),
                       // Dropdown estilizado
                       Theme(
@@ -1195,11 +1195,11 @@ class _TodoFormScreenState extends State<TodoFormScreen> {
                   ListTile( // Usar ListTile para layout fácil
                     contentPadding: EdgeInsets.zero, // Remover padding padrão
                     leading: const Icon(Icons.calendar_today_outlined, color: RetroTheme.primary, size: 18),
-                    title: Text('Prazo: $dueText', style: textTheme.bodyMedium),
+                    title: Text('Deadline: $dueText', style: textTheme.bodyMedium),
                     trailing: (_dueDate != null) // Botão para limpar data
                         ? IconButton(
                       icon: const Icon(Icons.clear, color: RetroTheme.accent, size: 18),
-                      tooltip: 'Limpar Prazo',
+                      tooltip: 'Clear Deadline',
                       onPressed: () => setState(() => _dueDate = null),
                     )
                         : null, // Sem botão se não houver data
@@ -1259,7 +1259,7 @@ class _TodoFormScreenState extends State<TodoFormScreen> {
                     width: 16, height: 16,
                     child: const CircularProgressIndicator(strokeWidth: 2, color: RetroTheme.textDark))
                     : const Icon(Icons.save, size: 18), // Ícone de salvar
-                label: Text(_isSaving ? 'Salvando...' : 'Salvar'),
+                label: Text(_isSaving ? 'Saving...' : 'Save'),
                 onPressed: _isSaving ? null : _saveTodo, // Desabilita botão enquanto salva
               ),
             ),
@@ -1268,4 +1268,4 @@ class _TodoFormScreenState extends State<TodoFormScreen> {
       ),
     );
   }
-} // Fim de _TodoFormScreenState
+}
