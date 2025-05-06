@@ -534,11 +534,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        Icon(Icons.calendar_today, size: 10, color: RetroTheme.textSecondary),
+                        Icon(Icons.calendar_today, size: 7, color: RetroTheme.textSecondary),
                         const SizedBox(width: 4),
                         Text(
                           DateFormat('dd/MM/yy HH:mm').format(todo.dueAt!), // Formato pt-BR
-                          style: textTheme.bodySmall?.copyWith(fontSize: 9, color: RetroTheme.textSecondary),
+                          style: textTheme.bodySmall?.copyWith(fontSize: 5, color: RetroTheme.textSecondary),
                         ),
                       ],
                     ),
@@ -974,8 +974,8 @@ class _TodoFormScreenState extends State<TodoFormScreen> {
               ),
               dialogBackgroundColor: RetroTheme.background, // Fundo fora do picker
               textTheme: Theme.of(context).textTheme.copyWith( // Garante a fonte correta
-                  bodyMedium: GoogleFonts.pressStart2p(fontSize: 10),
-                  labelSmall: GoogleFonts.pressStart2p(fontSize: 8)
+                  bodyMedium: GoogleFonts.pressStart2p(fontSize: 4),
+                  labelSmall: GoogleFonts.pressStart2p(fontSize: 4)
               )
           ),
           child: child!,
@@ -1011,11 +1011,11 @@ class _TodoFormScreenState extends State<TodoFormScreen> {
                 dialHandColor: RetroTheme.accent,
                 dialTextColor: RetroTheme.text,
                 entryModeIconColor: RetroTheme.primary,
-                helpTextStyle: GoogleFonts.pressStart2p(fontSize: 8, color: RetroTheme.textSecondary),
+                helpTextStyle: GoogleFonts.pressStart2p(fontSize: 4, color: RetroTheme.textSecondary),
               ),
               textTheme: Theme.of(context).textTheme.copyWith( // Garante a fonte correta
-                  bodyMedium: GoogleFonts.pressStart2p(fontSize: 10),
-                  labelSmall: GoogleFonts.pressStart2p(fontSize: 8)
+                  bodyMedium: GoogleFonts.pressStart2p(fontSize: 4),
+                  labelSmall: GoogleFonts.pressStart2p(fontSize: 4)
               )
           ),
           child: child!,
